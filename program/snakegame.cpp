@@ -1,4 +1,4 @@
-#include "snake.h"
+#include "snake.h" //TODO:初始时蛇不能向随机方向移动
 #include "food.h"
 /*宏定义*/
 #define WINDOW_W 600
@@ -6,17 +6,15 @@
 #define MAX_BARRIER_NUM 10
 #define MIN_BARRIER_NUM 3
 /*全局变量定义*/
-int speed = 2;
-int point = 0;
-unsigned int seed = 1;
-int map[block_num_x][block_num_y]; // 记录每一个格子中的内容
-// bool has_turned = false;
-// bool has_moved = true;
-Snake sn;
-FoodList fd;
-int barrier_num;
-int barrier[MAX_BARRIER_NUM][2];
-key_msg game_msg;
+int speed = 2;                     // 游戏速度/帧率
+int point = 0;                     // 游戏分数
+unsigned int seed = 1;             // 随机种子
+int map[block_num_x][block_num_y]; // 每一个格子中的内容:空格/食物/障碍物
+Snake sn;                          // 蛇
+FoodList fd;                       // 食物
+int barrier_num;                   // 障碍物个数
+int barrier[MAX_BARRIER_NUM][2];   // 障碍物位置
+key_msg game_msg;                  // 键盘消息
 /*函数声明*/
 void init_barrier();
 void gameover();
@@ -28,12 +26,13 @@ int main()
     /*局部变量*/
     int judge_res;
     /*预处理*/
-    seed = time(0);
+    seed = time(0); // 设置随机种子
     srand(seed);
     initgraph(WINDOW_W, WINDOW_H); // 设置窗口大小
     setcaption("snake");           // 设置窗口标题
-    init_block();
-    init_barrier();
+    init_block();                  // 初始化格子的位置
+    /*单局游戏的准备*/
+    init_barrier(); // 初始化生成障碍物
     point = 0;
     // // TEST:使食物的x坐标与蛇头的x坐标相同
     // fd.update(map);
@@ -41,7 +40,7 @@ int main()
     // fd.fl.front()->x = sn.body.front()->x;
     // auto it = fd.fl.begin();
     // cout << (*it)->x << endl;
-    /*游戏循环*/
+    /*单局游戏循环*/
     while (1)
     {
         turn();
@@ -64,7 +63,7 @@ int main()
                 cout << (*it)->x << endl;
                 if ((*it)->x == sn.body.front()->x && (*it)->y == sn.body.front()->y)
                 {
-                    point += (*it)->point;
+                    point += (*it)->point + 1;
                     fd.fl.erase(it);
                     break;
                 }
@@ -74,7 +73,6 @@ int main()
         cout << "Point:" << point << ' ';
         delay_fps(speed);
     }
-
     getch();
     /*后处理*/
     closegraph();
@@ -133,19 +131,22 @@ void draw_barrier()
     }
 }
 void turn() // 转弯
-{
+{           // 用一个循环队列生成一个缓冲区，解决一帧内连续转向使得第二次转向丢失的问题
     static int msg_cusion[100];
-    static int head = 0;
-    static int tail = 0;
-    static int cusion_size = 0;
-    int old_direc = sn.direc;
-    int key_num;
-    while (cusion_size || kbmsg())
+    static int head = 0;        // 队首
+    static int tail = 0;        // 队尾
+    static int cusion_size = 0; // 队伍长度
+    int old_direc = sn.direc;   // 原方向
+    int key_num;                // 键盘消息
+    int flag = false;           // 是否向cusion中加入消息
+    while (!flag && cusion_size || kbmsg())
     {
-        if (cusion_size)
+        if (!flag && cusion_size)
         {
-            key_num = msg_cusion[head++];
+            key_num = msg_cusion[head];
+            head = (head + 1) % 100;
             cusion_size--;
+            cout << cusion_size;
         }
         else
         {
@@ -160,10 +161,12 @@ void turn() // 转弯
             {
                 sn.direc = UP;
             }
-            else if (sn.direc != UP || sn.direc != DOWN)
+            else if (sn.direc != UP && sn.direc != DOWN)
             {
-                msg_cusion[tail++] = key_num;
+                msg_cusion[tail] = key_num;
+                tail = (tail + 1) % 100;
                 cusion_size++;
+                flag = true;
             }
             break;
         case 's':
@@ -172,10 +175,12 @@ void turn() // 转弯
             {
                 sn.direc = DOWN;
             }
-            else if (sn.direc != UP || sn.direc != DOWN)
+            else if (sn.direc != UP && sn.direc != DOWN)
             {
-                msg_cusion[tail++] = key_num;
+                msg_cusion[tail] = key_num;
+                tail = (tail + 1) % 100;
                 cusion_size++;
+                flag = true;
             }
             break;
         case 'd':
@@ -184,10 +189,12 @@ void turn() // 转弯
             {
                 sn.direc = RIGHT;
             }
-            else if (sn.direc != LEFT || sn.direc != RIGHT)
+            else if (sn.direc != LEFT && sn.direc != RIGHT)
             {
-                msg_cusion[tail++] = key_num;
+                msg_cusion[tail] = key_num;
+                tail = (tail + 1) % 100;
                 cusion_size++;
+                flag = true;
             }
             break;
         case 'a':
@@ -195,12 +202,13 @@ void turn() // 转弯
             if (old_direc != LEFT && old_direc != RIGHT)
             {
                 sn.direc = LEFT;
-                cusion_size++;
             }
-            else if (sn.direc != LEFT || sn.direc != RIGHT)
+            else if (sn.direc != LEFT && sn.direc != RIGHT)
             {
-                msg_cusion[tail++] = key_num;
+                msg_cusion[tail] = key_num;
+                tail = (tail + 1) % 100;
                 cusion_size++;
+                flag = true;
             }
             break;
         }
