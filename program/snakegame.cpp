@@ -1,67 +1,104 @@
 #include "snake.h" //TODO:初始时蛇不能向随机方向移动
 #include "food.h"
+#include <string>
+#include <fstream>
+#include <vector>
+#include <algorithm>
 /*宏定义*/
 #define WINDOW_W 600
 #define WINDOW_H 400
 #define MAX_BARRIER_NUM 10
-#define MIN_BARRIER_NUM 3
+#define MIN_BARRIER_NUM 0
 /*全局变量定义*/
-int speed = 2;                     // 游戏速度/帧率
-int point = 0;                     // 游戏分数
-unsigned int seed = 1;             // 随机种子
-int map[block_num_x][block_num_y]; // 每一个格子中的内容:空格/食物/障碍物
-Snake sn;                          // 蛇
-FoodList fd;                       // 食物
-bool wall[4] = {1, 0, 1, 0};       // 四面墙的虚实,右,下,左,上
-int barrier_num;                   // 障碍物个数
-int barrier[MAX_BARRIER_NUM][2];   // 障碍物位置
-key_msg game_msg;                  // 键盘消息
+bool newgame = true;
+int speed = 2;                         // 游戏速度/帧率
+int point = 0;                         // 游戏分数
+int step_num = 0;                      // 游戏进行的步数
+unsigned int seed = 1;                 // 随机种子
+int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM]; // 每一个格子中的内容:空格/食物/障碍物
+Snake sn;                              // 蛇
+FoodList fd;                           // 食物
+bool wall[4] = {1, 0, 1, 0};           // 四面墙的虚实,右,下,左,上
+int barrier_num;                       // 障碍物个数
+int barrier[MAX_BARRIER_NUM][2];       // 障碍物位置
+key_msg game_msg;                      // 键盘消息
+vector<string> msg_record;             // 游戏记录
 /*函数声明*/
+void game();
+void read_map(string map)
+{
+    ifstream fin(map);
+    if (fin)
+    {
+        fin >> block_num_x >> block_num_y >> wall[0] >> wall[1] >> wall[2] >> wall[3];
+        fin >> barrier_num;
+        for (int i = 0; i < barrier_num; i++)
+        {
+            fin >> barrier[i][0] >> barrier[i][1];
+        }
+    }
+    else
+    {
+        cout << "can't open default.map" << endl;
+        getch();
+    }
+}
+void read_config(string cfg) { return; }
+void play_record(string rec);
 void init_barrier();
 void gameover();
 void update_map();
 void draw_barrier();
-void turn();
+int turn();
+void update_record(int direc, string food_msg);
 int main()
 {
-    /*局部变量*/
-    int judge_res;
+    int mode = 2; // 游戏模式:0->默认,1->选择文件,2->回放
     /*预处理*/
     seed = time(0); // 设置随机种子
     srand(seed);
     initgraph(WINDOW_W, WINDOW_H); // 设置窗口大小
     setcaption("snake");           // 设置窗口标题
     init_block();                  // 初始化格子的位置
+    switch (mode)
+    {
+    case 0: // 默认游戏模式
+        game();
+        break;
+    case 1: // 指定config,map文件的游戏模式
+        break;
+    case 2:
+        play_record("record/record.rec");
+        break;
+    }
+    /*后处理*/
+    getch();
+    closegraph();
+}
+/*main()结束*/
+/*函数定义*/
+void game()
+{
     /*单局游戏的准备*/
+    /*局部变量*/
+    int judge_res;
     init_barrier(); // 初始化生成障碍物
     point = 0;
-    // // TEST:使食物的x坐标与蛇头的x坐标相同
-    // fd.update(map);
-    // cout << fd.fl.front()->x << endl;
-    // fd.fl.front()->x = sn.body.front()->x;
-    // auto it = fd.fl.begin();
-    // cout << (*it)->x << endl;
     /*单局游戏循环*/
     while (1)
     {
-        turn();
+        int new_direc = turn();
         cleardevice();
-        fd.update(map);
+        string food_msg = fd.update(map);
         sn.move();
         sn.draw();
         draw_barrier();
         update_map();
         judge_res = sn.judge(map);
-        if (judge_res == BARRIER)
-        {
-            gameover();
-            break;
-        }
-        else if (judge_res == FOOD)
+        if (judge_res == FOOD)
         {
             for (list<Food *>::iterator it = fd.fl.begin(); it != fd.fl.end(); it++)
             {
-                cout << (*it)->x << endl;
                 if ((*it)->x == sn.body.front()->x && (*it)->y == sn.body.front()->y)
                 {
                     point += (*it)->point + 1;
@@ -72,15 +109,89 @@ int main()
             }
         }
         cout << "Point:" << point << ' ';
+        update_record(new_direc, food_msg);
+        if (judge_res == BARRIER)
+        {
+            gameover();
+            break;
+        }
         delay_fps(speed);
     }
-    getch();
-    /*后处理*/
-    closegraph();
+    /*单局游戏结束*/
+    ofstream fout("record/record.rec");
+    for (int i = 0; i < msg_record.size(); i++)
+    {
+        fout << msg_record[i] << endl;
+    }
+    fout.close();
 }
-/*函数定义*/
-void init_barrier()
+void play_record(string rec)
 {
+    read_map("map/default.map");
+    read_config(" ");
+    /*单局游戏的准备*/
+    ifstream fin(rec);
+    if (!fin)
+    {
+        cout << "Failed to open " << rec << endl;
+        return;
+    }
+    point = 0;
+    step_num = 0;
+    string line = "";
+    /*单局游戏循环*/
+    while (1)
+    {
+        getline(fin, line);
+        line.erase(remove_if(line.begin(), line.end(), ::isspace), line.end()); // 清除空格
+        int pos = 1;
+        while (pos++ < line.size())
+        {
+        case 'W':
+            sn.direc = UP;
+            break;
+        case 'A':
+            sn.direc = LEFT;
+            break;
+        case 'S':
+            sn.direc = DOWN;
+            break;
+        case 'D':
+            sn.direc = RIGHT;
+            break;
+        case 'F':
+            if (step_num != 0)
+            {
+                for (list<Food *>::iterator it = fd.fl.begin(); it != fd.fl.end(); it++)
+                {
+                    if ((*it)->x == sn.body.front()->x && (*it)->y == sn.body.front()->y)
+                    {
+                        point += (*it)->point + 1;
+                        fd.fl.erase(it);
+                        break;
+                    }
+                    else
+                    {
+                        cout << "Food not found\n";
+                    }
+                    sn.add();
+                }
+            }
+
+            fd.fl.push_back(new Food(line[pos], line[pos + 1], line[pos + 2] - 1));
+            pos += 3;
+        }
+        cleardevice();
+        sn.move();
+        sn.draw();
+        draw_barrier();
+        update_map();
+        cout << "Point:" << point << ' ';
+        delay_fps(speed);
+    }
+}
+void init_barrier()
+{                // 生成四面墙
     if (wall[0]) // 右
     {
         for (int i = 0; i < block_num_y; i++)
@@ -175,7 +286,7 @@ void draw_barrier()
             fill_color(0, i, WHITE);
         }
     }
-    if (wall[2]) // 上
+    if (wall[3]) // 上
     {
         for (int i = 0; i < block_num_x; i++)
         {
@@ -187,8 +298,8 @@ void draw_barrier()
         fill_color(barrier[i][0], barrier[i][1], WHITE);
     }
 }
-void turn() // 转弯
-{           // 用一个循环队列生成一个缓冲区，解决一帧内连续转向使得第二次转向丢失的问题
+int turn() // 转弯
+{          // 用一个循环队列生成一个缓冲区，解决一帧内连续转向使得第二次转向丢失的问题
     static int msg_cusion[100];
     static int head = 0;        // 队首
     static int tail = 0;        // 队尾
@@ -221,8 +332,6 @@ void turn() // 转弯
             else if (sn.direc != UP && sn.direc != DOWN)
             {
                 msg_cusion[tail] = key_num;
-                tail = (tail + 1) % 100;
-                cusion_size++;
                 flag = true;
             }
             break;
@@ -235,8 +344,6 @@ void turn() // 转弯
             else if (sn.direc != UP && sn.direc != DOWN)
             {
                 msg_cusion[tail] = key_num;
-                tail = (tail + 1) % 100;
-                cusion_size++;
                 flag = true;
             }
             break;
@@ -249,8 +356,6 @@ void turn() // 转弯
             else if (sn.direc != LEFT && sn.direc != RIGHT)
             {
                 msg_cusion[tail] = key_num;
-                tail = (tail + 1) % 100;
-                cusion_size++;
                 flag = true;
             }
             break;
@@ -263,11 +368,50 @@ void turn() // 转弯
             else if (sn.direc != LEFT && sn.direc != RIGHT)
             {
                 msg_cusion[tail] = key_num;
-                tail = (tail + 1) % 100;
-                cusion_size++;
                 flag = true;
             }
             break;
         }
+        if (flag)
+        {
+            tail = (tail + 1) % 100;
+            cusion_size++;
+        }
     }
+    if (sn.direc != old_direc)
+    {
+        return sn.direc;
+    }
+    return -1;
+}
+void update_record(int direc, string food_msg)
+{
+    static int gametime;
+    if (newgame)
+    {
+        newgame = false;
+        msg_record.clear();
+        gametime = 0;
+        direc = sn.direc;
+    }
+    string msg = "";
+    msg += to_string(gametime);
+    switch (direc)
+    {
+    case UP:
+        msg += " W";
+        break;
+    case LEFT:
+        msg += " A";
+        break;
+    case DOWN:
+        msg += " S";
+        break;
+    case RIGHT:
+        msg += " D";
+        break;
+    }
+    msg += food_msg;
+    msg_record.push_back(msg);
+    gametime++;
 }

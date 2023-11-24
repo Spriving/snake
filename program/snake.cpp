@@ -100,7 +100,7 @@ void Snake::move()
     body.pop_back(); // 删去最后一个结点
 }
 
-int Snake::judge(int map[block_num_x][block_num_y])
+int Snake::judge(int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM])
 {
     /*判断蛇移动后当前的状态*/
     int s_x = body.front()->x;

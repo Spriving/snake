@@ -3,6 +3,7 @@
 
 #include "image.h"
 #include <list>
+#include <string>
 
 extern int food_num;
 extern float food_p1;
@@ -15,16 +16,7 @@ public:
     int point; // 0-2,表示1-3分
     int x;
     int y;
-    Food(int xx = rand() % block_num_x, int yy = rand() % block_num_y) : x(xx), y(yy)
-    {
-        float r = rand() / float(32768);
-        if (r < food_p1)
-            point = 0;
-        else if (r < food_p1 + food_p2)
-            point = 1;
-        else
-            point = 2;
-    };
+    Food(int xx = rand() % block_num_x, int yy = rand() % block_num_y, int pp = rand() % 3) : x(xx), y(yy), point(pp){};
     void draw();
     friend class Foodlist;
 };
@@ -33,7 +25,7 @@ class FoodList //: public Food
 public:
     list<Food *> fl;
     int len;
-    void update(int map[block_num_x][block_num_y]); // TODO:只能在空地生成food
+    string update(int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM]);
     FoodList(int _len = 3) : len(_len) {}
     ~FoodList()
     {

@@ -39,7 +39,7 @@ public:
     void add();
     void draw();
     void move();
-    int judge(int map[block_num_x][block_num_y]);
+    int judge(int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM]);
     Snake()
     {
         direc = rand() % 4;
