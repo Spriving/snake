@@ -12,6 +12,7 @@ unsigned int seed = 1;             // 随机种子
 int map[block_num_x][block_num_y]; // 每一个格子中的内容:空格/食物/障碍物
 Snake sn;                          // 蛇
 FoodList fd;                       // 食物
+bool wall[4] = {1, 0, 1, 0};       // 四面墙的虚实,右,下,左,上
 int barrier_num;                   // 障碍物个数
 int barrier[MAX_BARRIER_NUM][2];   // 障碍物位置
 key_msg game_msg;                  // 键盘消息
@@ -80,6 +81,34 @@ int main()
 /*函数定义*/
 void init_barrier()
 {
+    if (wall[0]) // 右
+    {
+        for (int i = 0; i < block_num_y; i++)
+        {
+            map[block_num_x - 1][i] = BARRIER;
+        }
+    }
+    if (wall[1]) // 下
+    {
+        for (int i = 0; i < block_num_x; i++)
+        {
+            map[i][0] = BARRIER;
+        }
+    }
+    if (wall[2]) // 左
+    {
+        for (int i = 0; i < block_num_y; i++)
+        {
+            map[0][i] = BARRIER;
+        }
+    }
+    if (wall[2]) // 上
+    {
+        for (int i = 0; i < block_num_x; i++)
+        {
+            map[i][block_num_y - 1] = BARRIER;
+        }
+    }
     barrier_num = rand() % (MAX_BARRIER_NUM - MIN_BARRIER_NUM) + MIN_BARRIER_NUM;
     for (int i = 0; i < barrier_num; i++)
     {
@@ -102,11 +131,11 @@ void gameover()
 }
 void update_map()
 {
-    for (int i = 0; i < block_num_x; i++)
+    for (int i = wall[2]; i < block_num_x - wall[0]; i++)
     {
-        for (int j = 0; j < block_num_y; j++)
+        for (int j = wall[3]; j < block_num_y - wall[1]; j++)
         {
-            map[i][j] = SPACE; // 全部更新为空地SPACE
+            map[i][j] = SPACE; // 非墙体处全部更新为空地SPACE
         }
     }
     for (int i = 0; i < barrier_num; i++)
@@ -125,6 +154,34 @@ void update_map()
 }
 void draw_barrier()
 {
+    if (wall[0]) // 右
+    {
+        for (int i = 0; i < block_num_y; i++)
+        {
+            fill_color(block_num_x - 1, i, WHITE);
+        }
+    }
+    if (wall[1]) // 下
+    {
+        for (int i = 0; i < block_num_x; i++)
+        {
+            fill_color(i, block_num_y - 1, WHITE);
+        }
+    }
+    if (wall[2]) // 左
+    {
+        for (int i = 0; i < block_num_y; i++)
+        {
+            fill_color(0, i, WHITE);
+        }
+    }
+    if (wall[2]) // 上
+    {
+        for (int i = 0; i < block_num_x; i++)
+        {
+            fill_color(i, 0, WHITE);
+        }
+    }
     for (int i = 0; i < barrier_num; i++)
     {
         fill_color(barrier[i][0], barrier[i][1], WHITE);

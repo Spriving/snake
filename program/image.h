@@ -7,7 +7,7 @@
 using namespace std;
 /*宏*/
 #define block_size 20
-#define block_num_x 15
+#define block_num_x 15 // 首和尾是墙体
 #define block_num_y 12
 /*全局变量*/
 enum Object
