@@ -15,7 +15,7 @@ bool newgame = true;
 int speed = 2;                         // 游戏速度/帧率
 int point = 0;                         // 游戏分数
 int step_num = 0;                      // 游戏进行的步数
-unsigned int seed = 1;                 // 随机种子
+int seed = 1;                          // 随机种子
 int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM]; // 每一个格子中的内容:空格/食物/障碍物
 Snake sn;                              // 蛇
 FoodList fd;                           // 食物
@@ -26,15 +26,17 @@ key_msg game_msg;                      // 键盘消息
 vector<string> msg_record;             // 游戏记录
 /*函数声明*/
 void default_game();
+void init_wall();
+void init_barrier();
 void read_map(string map);
-void read_config(string cfg) { return; }
+void read_config(string cfg);
 void config_game(string mp, string cfg);
 void play_record(string rec);
-void init_barrier();
 void gameover();
 void update_map();
 void draw_barrier();
 int turn();
+void init_record(string map, string cfg);
 void update_record(int direc, string food_msg);
 int main()
 {
@@ -50,7 +52,7 @@ int main()
         default_game();
         break;
     case 1: // 指定config,map文件的游戏模式
-        config_game("map/default.map", "");
+        config_game("map/default.map", "config/default.config");
         break;
     case 2:
         play_record("record/record.rec");
@@ -111,7 +113,37 @@ void default_game()
     }
     fout.close();
 }
-
+void init_wall()
+{
+    if (wall[0]) // 右
+    {
+        for (int i = 0; i < block_num_y; i++)
+        {
+            map[block_num_x - 1][i] = BARRIER;
+        }
+    }
+    if (wall[1]) // 下
+    {
+        for (int i = 0; i < block_num_x; i++)
+        {
+            map[i][0] = BARRIER;
+        }
+    }
+    if (wall[2]) // 左
+    {
+        for (int i = 0; i < block_num_y; i++)
+        {
+            map[0][i] = BARRIER;
+        }
+    }
+    if (wall[2]) // 上
+    {
+        for (int i = 0; i < block_num_x; i++)
+        {
+            map[i][block_num_y - 1] = BARRIER;
+        }
+    }
+}
 void read_map(string map)
 {
     ifstream fin(map);
@@ -123,12 +155,36 @@ void read_map(string map)
         {
             fin >> barrier[i][0] >> barrier[i][1];
         }
+        init_wall();
     }
     else
     {
         cout << "can't open " << map << endl;
         getch();
     }
+}
+void read_config(string cfg)
+{
+    ifstream fin(cfg);
+    string str = "";
+    getline(fin, str);
+    speed = stoi(str); // 第1行：游戏难度/速度
+    getline(fin, str);
+    seed = stoi(str); // 第2行：随机种子，-1为时间
+    if (seed == -1)
+    {
+        seed = time(NULL);
+    }
+    getline(fin, str);
+    food_num = stoi(str); // 第3行：食物数量
+    // 第4行：食物生成概率
+    fin >> str;
+    food_p1 = stof(str);
+    fin >> str;
+    food_p2 = stof(str);
+    fin >> str;
+    food_p3 = stof(str);
+    fin.close();
 }
 void config_game(string mp, string cfg)
 {
@@ -137,6 +193,7 @@ void config_game(string mp, string cfg)
     int judge_res;
     read_map(mp);
     read_config(cfg);
+    init_record(mp, cfg);
     point = 0;
     /*单局游戏循环*/
     while (1)
@@ -181,7 +238,7 @@ void config_game(string mp, string cfg)
     fout.close();
 }
 
-void play_record(string rec) // TODO:debug->食物不能正常读取
+void play_record(string rec)
 {
     ifstream fin(rec);
     if (!fin)
@@ -197,7 +254,7 @@ void play_record(string rec) // TODO:debug->食物不能正常读取
         getline(fin, str);
         read_map(str);
     }
-    else // 如果是mode==0保存随机地图信息
+    else // TODO如果是mode==0保存随机地图信息
     {
     }
     /*单局游戏的准备*/
@@ -278,35 +335,8 @@ void play_record(string rec) // TODO:debug->食物不能正常读取
     }
 }
 void init_barrier()
-{                // 生成四面墙
-    if (wall[0]) // 右
-    {
-        for (int i = 0; i < block_num_y; i++)
-        {
-            map[block_num_x - 1][i] = BARRIER;
-        }
-    }
-    if (wall[1]) // 下
-    {
-        for (int i = 0; i < block_num_x; i++)
-        {
-            map[i][0] = BARRIER;
-        }
-    }
-    if (wall[2]) // 左
-    {
-        for (int i = 0; i < block_num_y; i++)
-        {
-            map[0][i] = BARRIER;
-        }
-    }
-    if (wall[2]) // 上
-    {
-        for (int i = 0; i < block_num_x; i++)
-        {
-            map[i][block_num_y - 1] = BARRIER;
-        }
-    }
+{ // 生成四面墙
+    init_wall();
     barrier_num = rand() % (MAX_BARRIER_NUM - MIN_BARRIER_NUM) + MIN_BARRIER_NUM;
     for (int i = 0; i < barrier_num; i++)
     {
