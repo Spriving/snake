@@ -1,4 +1,4 @@
-#include "snake.h" //TODO:初始时蛇不能向随机方向移动
+#include "snake.h"
 #include "food.h"
 #include <string>
 #include <fstream>
@@ -7,9 +7,10 @@
 /*宏定义*/
 #define WINDOW_W 600
 #define WINDOW_H 400
-#define MAX_BARRIER_NUM 10
+#define MAX_BARRIER_NUM 15
 #define MIN_BARRIER_NUM 0
 /*全局变量定义*/
+int mode = 2; // 游戏模式:0->默认,1->按配置游戏,2->回放
 bool newgame = true;
 int speed = 2;                         // 游戏速度/帧率
 int point = 0;                         // 游戏分数
@@ -24,26 +25,10 @@ int barrier[MAX_BARRIER_NUM][2];       // 障碍物位置
 key_msg game_msg;                      // 键盘消息
 vector<string> msg_record;             // 游戏记录
 /*函数声明*/
-void game();
-void read_map(string map)
-{
-    ifstream fin(map);
-    if (fin)
-    {
-        fin >> block_num_x >> block_num_y >> wall[0] >> wall[1] >> wall[2] >> wall[3];
-        fin >> barrier_num;
-        for (int i = 0; i < barrier_num; i++)
-        {
-            fin >> barrier[i][0] >> barrier[i][1];
-        }
-    }
-    else
-    {
-        cout << "can't open default.map" << endl;
-        getch();
-    }
-}
+void default_game();
+void read_map(string map);
 void read_config(string cfg) { return; }
+void config_game(string mp, string cfg);
 void play_record(string rec);
 void init_barrier();
 void gameover();
@@ -53,7 +38,6 @@ int turn();
 void update_record(int direc, string food_msg);
 int main()
 {
-    int mode = 2; // 游戏模式:0->默认,1->选择文件,2->回放
     /*预处理*/
     seed = time(0); // 设置随机种子
     srand(seed);
@@ -63,9 +47,10 @@ int main()
     switch (mode)
     {
     case 0: // 默认游戏模式
-        game();
+        default_game();
         break;
     case 1: // 指定config,map文件的游戏模式
+        config_game("map/default.map", "");
         break;
     case 2:
         play_record("record/record.rec");
@@ -77,7 +62,7 @@ int main()
 }
 /*main()结束*/
 /*函数定义*/
-void game()
+void default_game()
 {
     /*单局游戏的准备*/
     /*局部变量*/
@@ -90,6 +75,7 @@ void game()
         int new_direc = turn();
         cleardevice();
         string food_msg = fd.update(map);
+        fd.draw();
         sn.move();
         sn.draw();
         draw_barrier();
@@ -125,17 +111,96 @@ void game()
     }
     fout.close();
 }
-void play_record(string rec)
+
+void read_map(string map)
 {
-    read_map("map/default.map");
-    read_config(" ");
+    ifstream fin(map);
+    if (fin)
+    {
+        fin >> block_num_x >> block_num_y >> wall[0] >> wall[1] >> wall[2] >> wall[3];
+        fin >> barrier_num;
+        for (int i = 0; i < barrier_num; i++)
+        {
+            fin >> barrier[i][0] >> barrier[i][1];
+        }
+    }
+    else
+    {
+        cout << "can't open " << map << endl;
+        getch();
+    }
+}
+void config_game(string mp, string cfg)
+{
     /*单局游戏的准备*/
+    /*局部变量*/
+    int judge_res;
+    read_map(mp);
+    read_config(cfg);
+    point = 0;
+    /*单局游戏循环*/
+    while (1)
+    {
+        int new_direc = turn();
+        cleardevice();
+        string food_msg = fd.update(map);
+        fd.draw();
+        sn.move();
+        sn.draw();
+        draw_barrier();
+        update_map();
+        judge_res = sn.judge(map);
+        if (judge_res == FOOD)
+        {
+            for (list<Food *>::iterator it = fd.fl.begin(); it != fd.fl.end(); it++)
+            {
+                if ((*it)->x == sn.body.front()->x && (*it)->y == sn.body.front()->y)
+                {
+                    point += (*it)->point + 1;
+                    fd.fl.erase(it);
+                    break;
+                }
+                sn.add();
+            }
+        }
+        cout << "Point:" << point << ' ';
+        update_record(new_direc, food_msg);
+        if (judge_res == BARRIER)
+        {
+            gameover();
+            break;
+        }
+        delay_fps(speed);
+    }
+    /*单局游戏结束*/
+    ofstream fout("record/record.rec");
+    for (int i = 0; i < msg_record.size(); i++)
+    {
+        fout << msg_record[i] << endl;
+    }
+    fout.close();
+}
+
+void play_record(string rec) // TODO:debug->食物不能正常读取
+{
     ifstream fin(rec);
     if (!fin)
     {
         cout << "Failed to open " << rec << endl;
         return;
     }
+    string str = "";
+    getline(fin, str);
+    if (str[0] = 'c') // 如果是mode==1按配置-地图模式保存
+    {
+        read_config(str);
+        getline(fin, str);
+        read_map(str);
+    }
+    else // 如果是mode==0保存随机地图信息
+    {
+    }
+    /*单局游戏的准备*/
     point = 0;
     step_num = 0;
     string line = "";
@@ -145,48 +210,70 @@ void play_record(string rec)
         getline(fin, line);
         line.erase(remove_if(line.begin(), line.end(), ::isspace), line.end()); // 清除空格
         int pos = 1;
-        while (pos++ < line.size())
+        while (pos < line.size())
         {
-        case 'W':
-            sn.direc = UP;
-            break;
-        case 'A':
-            sn.direc = LEFT;
-            break;
-        case 'S':
-            sn.direc = DOWN;
-            break;
-        case 'D':
-            sn.direc = RIGHT;
-            break;
-        case 'F':
-            if (step_num != 0)
+            switch (line[pos++])
             {
-                for (list<Food *>::iterator it = fd.fl.begin(); it != fd.fl.end(); it++)
+            case 'W':
+                sn.direc = UP;
+                break;
+            case 'A':
+                sn.direc = LEFT;
+                break;
+            case 'S':
+                sn.direc = DOWN;
+                break;
+            case 'D':
+                sn.direc = RIGHT;
+                break;
+            case 'F':
+                if (step_num != 0)
                 {
-                    if ((*it)->x == sn.body.front()->x && (*it)->y == sn.body.front()->y)
+                    for (list<Food *>::iterator it = fd.fl.begin(); it != fd.fl.end(); it++)
                     {
-                        point += (*it)->point + 1;
-                        fd.fl.erase(it);
-                        break;
+                        if ((*it)->x == sn.body.front()->x && (*it)->y == sn.body.front()->y)
+                        {
+                            point += (*it)->point + 1;
+                            cout << "snake_head:" << sn.body.front()->x << ' ' << sn.body.front()->y << endl;
+                            fd.fl.erase(it);
+                            break;
+                        }
+                        else
+                        {
+                            cout << "Food not found\n";
+                        }
+                        sn.add();
                     }
-                    else
-                    {
-                        cout << "Food not found\n";
-                    }
-                    sn.add();
                 }
+                int x = 0, y = 0, p = 0;
+                while (line[pos] != ',')
+                {
+                    x = x * 10 + (line[pos++] - 48);
+                    cout << x << endl;
+                }
+                pos++;
+                while (line[pos] != ',')
+                {
+                    y = y * 10 + (line[pos++] - 48);
+                }
+                pos++;
+                p = (line[pos++] - 48) - 1;
+                cout << x << ' ' << y << ' ' << p << '|';
+                fd.fl.push_back(new Food(x, y, p));
             }
-
-            fd.fl.push_back(new Food(line[pos], line[pos + 1], line[pos + 2] - 1));
-            pos += 3;
+        }
+        if (line.size() == 0)
+        {
+            gameover();
+            return;
         }
         cleardevice();
         sn.move();
         sn.draw();
+        fd.draw();
         draw_barrier();
-        update_map();
         cout << "Point:" << point << ' ';
+        step_num++;
         delay_fps(speed);
     }
 }
@@ -384,13 +471,47 @@ int turn() // 转弯
     }
     return -1;
 }
+void init_record(string map, string cfg)
+{
+    if (newgame)
+    {
+        msg_record.clear();
+        if (mode == 0) // 默认模式，记录地图信息
+        {
+            string str = "";
+            str = to_string(block_num_x) + " " + to_string(block_num_y);
+            msg_record.push_back(str); // 第一行：xy方向格子数
+            str = " ";
+            for (int i = 0; i < 4; i++) // 第二行：四面墙的虚实
+            {
+                str += to_string(wall[i]);
+                if (i < 3)
+                {
+                    str += " ";
+                }
+            }
+            msg_record.push_back(str);
+            str = to_string(barrier_num);
+            msg_record.push_back(str); // 第三行：障碍物数量
+            for (int i = 0; i < barrier_num; i++)
+            {
+                str = to_string(barrier[i][0]) + " " + to_string(barrier[i][1]);
+                msg_record.push_back(str); // 第n行：第n-3个障碍物的位置,n>=4
+            }
+        }
+        else if (mode == 1) // 配置游戏模式，记录地图文件和配置文件
+        {
+            msg_record.push_back(cfg);
+            msg_record.push_back(map);
+        }
+    }
+}
 void update_record(int direc, string food_msg)
 {
     static int gametime;
     if (newgame)
     {
         newgame = false;
-        msg_record.clear();
         gametime = 0;
         direc = sn.direc;
     }

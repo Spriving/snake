@@ -35,6 +35,7 @@ public:
     int direc;
     int len;
     // 方法
+    void init();
     int size() { return body.size(); }
     void add();
     void draw();
@@ -42,7 +43,8 @@ public:
     int judge(int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM]);
     Snake()
     {
-        direc = rand() % 4;
+        body.push_back(new Node());
+        direc = DOWN;
         add();
     }
     ~Snake()

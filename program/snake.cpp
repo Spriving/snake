@@ -20,6 +20,10 @@ void restrict_xy(int &xx, int &yy)
         yy -= block_num_y;
     }
 }
+
+void init()
+{
+}
 void Snake::add()
 {
     int new_x, new_y;

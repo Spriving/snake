@@ -29,11 +29,14 @@ string FoodList::update(int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM])
                 pp = 2;
         } while (map[xx][yy] != SPACE);
         fl.push_back(new Food(xx, yy, pp));
-        msg += " F " + to_string(xx) + " " + to_string(yy) + " " + to_string(pp + 1);
+        msg += " F " + to_string(xx) + "," + to_string(yy) + "," + to_string(pp + 1);
     }
+    return msg;
+}
+void FoodList::draw()
+{
     for (auto it = fl.begin(); it != fl.end(); it++)
     {
         (*it)->draw();
     }
-    return msg;
 }

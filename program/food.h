@@ -26,6 +26,7 @@ public:
     list<Food *> fl;
     int len;
     string update(int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM]);
+    void draw();
     FoodList(int _len = 3) : len(_len) {}
     ~FoodList()
     {
