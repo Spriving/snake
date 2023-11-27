@@ -4,26 +4,13 @@
 #include "image.h"
 #include <list>
 #include <cstdlib>
-enum Direction
-{
-    RIGHT,
-    DOWN,
-    LEFT,
-    UP,
-};
 class Node
 {
 public:
     int x;
     int y;
     int pos;
-    Node()
-    {
-        x = rand() % 8 + 4;
-        y = rand() % 8 + 2;
-        pos = 0;
-    }
-    Node(int _x, int _y, int _pos) : x(_x), y(_y), pos(_pos){};
+    Node(int _x = block_num_x / 2, int _y = block_num_y / 3, int _pos = 0) : x(_x), y(_y), pos(_pos){};
     friend class Snake;
 };
 

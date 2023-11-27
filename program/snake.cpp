@@ -1,28 +1,11 @@
 #include "snake.h"
 
-void restrict_xy(int &xx, int &yy)
+void Snake::init() // TODO完成Snake的Init()函数
 {
-
-    while (xx < 0)
-    {
-        xx += block_num_x;
-    }
-    while (xx >= block_num_x)
-    {
-        xx -= block_num_x;
-    }
-    while (yy < 0)
-    {
-        yy += block_num_y;
-    }
-    while (yy >= block_num_y)
-    {
-        yy -= block_num_y;
-    }
-}
-
-void init()
-{
+    body.clear();
+    body.push_back(new Node());
+    direc = DOWN;
+    add();
 }
 void Snake::add()
 {

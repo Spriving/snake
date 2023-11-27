@@ -1,5 +1,6 @@
 #include "snake.h"
 #include "food.h"
+#include "a_star.h"
 #include <string>
 #include <fstream>
 #include <vector>
@@ -10,27 +11,27 @@
 #define MAX_BARRIER_NUM 15
 #define MIN_BARRIER_NUM 0
 /*全局变量定义*/
-int mode = 2; // 游戏模式:0->默认,1->按配置游戏,2->回放
+int mode = 3; // 游戏模式:0->默认,1->按配置游戏,2->回放,3->AI
 bool newgame = true;
-int speed = 2;                         // 游戏速度/帧率
-int point = 0;                         // 游戏分数
-int step_num = 0;                      // 游戏进行的步数
-int seed = 1;                          // 随机种子
-int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM]; // 每一个格子中的内容:空格/食物/障碍物
-Snake sn;                              // 蛇
-FoodList fd;                           // 食物
-bool wall[4] = {1, 0, 1, 0};           // 四面墙的虚实,右,下,左,上
-int barrier_num;                       // 障碍物个数
-int barrier[MAX_BARRIER_NUM][2];       // 障碍物位置
-key_msg game_msg;                      // 键盘消息
-vector<string> msg_record;             // 游戏记录
+int speed = 2;                   // 游戏速度/帧率
+int point = 0;                   // 游戏分数
+int step_num = 0;                // 游戏进行的步数
+int seed = 1;                    // 随机种子
+Snake sn;                        // 蛇
+FoodList fd;                     // 食物
+bool wall[4] = {1, 0, 1, 0};     // 四面墙的虚实,右,下,左,上
+int barrier_num;                 // 障碍物个数
+int barrier[MAX_BARRIER_NUM][2]; // 障碍物位置
+key_msg game_msg;                // 键盘消息
+vector<string> msg_record;       // 游戏记录
 /*函数声明*/
-void default_game();
 void init_wall();
 void init_barrier();
 void read_map(string map);
 void read_config(string cfg);
+void default_game();
 void config_game(string mp, string cfg);
+void AI_game(string mp, string cfg);
 void play_record(string rec);
 void gameover();
 void update_map();
@@ -54,8 +55,11 @@ int main()
     case 1: // 指定config,map文件的游戏模式
         config_game("map/default.map", "config/default.config");
         break;
-    case 2:
+    case 2: // 播放回放
         play_record("record/record.rec");
+        break;
+    case 3: // AI
+        AI_game("map/default.map", "config/default.config");
         break;
     }
     /*后处理*/
@@ -96,7 +100,8 @@ void default_game()
                 sn.add();
             }
         }
-        cout << "Point:" << point << ' ';
+        xyprintf(300, 100, "Point:%d", point);
+        // cout << "Point:" << point << ' ';
         update_record(new_direc, food_msg);
         if (judge_res == BARRIER)
         {
@@ -220,7 +225,7 @@ void config_game(string mp, string cfg)
                 sn.add();
             }
         }
-        cout << "Point:" << point << ' ';
+        xyprintf(500, 100, "Point:%d", point);
         update_record(new_direc, food_msg);
         if (judge_res == BARRIER)
         {
@@ -238,6 +243,69 @@ void config_game(string mp, string cfg)
     fout.close();
 }
 
+void AI_game(string mp, string cfg)
+{
+    /*单局游戏的准备*/
+    sn.init();
+    /*局部变量*/
+    int judge_res;
+    read_map(mp);
+    read_config(cfg);
+    init_record(mp, cfg);
+    point = 0;
+    step_num = 0;
+    Direction new_direc = STAY;
+    /*单局游戏循环*/
+    while (1)
+    {
+        if (step_num++)
+        {
+            new_direc = a_star_search(sn.body.front()->x, sn.body.front()->y, fd);
+
+            cout << "new_drec=" << new_direc << endl;
+        }
+        if (new_direc != STAY)
+        {
+            sn.direc = new_direc;
+        }
+        cleardevice();
+        string food_msg = fd.update(map);
+        fd.draw();
+        sn.move();
+        sn.draw();
+        draw_barrier();
+        update_map();
+        judge_res = sn.judge(map);
+        if (judge_res == FOOD)
+        {
+            for (auto it = fd.fl.begin(); it != fd.fl.end(); it++)
+            {
+                if ((*it)->x == sn.body.front()->x && (*it)->y == sn.body.front()->y)
+                {
+                    point += (*it)->point + 1;
+                    fd.fl.erase(it);
+                    break;
+                }
+                sn.add();
+            }
+        }
+        xyprintf(500, 100, "Point:%d", point);
+        update_record(new_direc, food_msg);
+        if (judge_res == BARRIER)
+        {
+            gameover();
+            break;
+        }
+        delay_fps(speed);
+    }
+    /*单局游戏结束*/
+    ofstream fout("record/record.rec");
+    for (int i = 0; i < msg_record.size(); i++)
+    {
+        fout << msg_record[i] << endl;
+    }
+    fout.close();
+}
 void play_record(string rec)
 {
     ifstream fin(rec);

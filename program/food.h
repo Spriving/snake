@@ -28,13 +28,14 @@ public:
     string update(int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM]);
     void draw();
     FoodList(int _len = 3) : len(_len) {}
-    ~FoodList()
-    {
-        for (auto it = fl.begin(); it != fl.end(); it++)
-        {
-            delete *it;
-        }
-    };
+    // ~FoodList()
+    // {
+    //     while (!fl.empty())
+    //     {
+    //         // delete fl.front();
+    //         fl.pop_front();
+    //     }
+    // };
 };
 
 #endif
