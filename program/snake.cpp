@@ -104,3 +104,13 @@ int Snake::judge(int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM])
     }
     return res;
 }
+
+int Snake::search(int _x, int _y)
+{
+    for (auto it = body.begin(); it != body.end(); it++)
+    {
+        if ((*it)->x == _x && (*it)->y == _y)
+            return (*it)->pos;
+    }
+    return -1;
+}

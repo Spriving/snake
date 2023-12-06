@@ -20,7 +20,6 @@ public:
     // 属性
     list<Node *> body;
     int direc;
-    int len;
     // 方法
     void init();
     int size() { return body.size(); }
@@ -34,12 +33,14 @@ public:
         direc = DOWN;
         add();
     }
-    ~Snake()
-    {
-        for (auto it = body.begin(); it != body.end(); it++)
-        {
-            delete *it;
-        }
-    }
+    // ~Snake()
+    // {
+    //     for (auto it = body.begin(); body.size(); it = body.begin())
+    //     {
+    //         delete it;
+    //     }
+    // }
+    int len() { return body.size(); }
+    int search(int _x, int _y);
 };
 #endif

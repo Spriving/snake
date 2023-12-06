@@ -13,13 +13,12 @@
 /*全局变量定义*/
 int mode = 3; // 游戏模式:0->默认,1->按配置游戏,2->回放,3->AI
 bool newgame = true;
-int speed = 2;                   // 游戏速度/帧率
+int speed = 9;                   // 游戏速度/帧率
 int point = 0;                   // 游戏分数
 int step_num = 0;                // 游戏进行的步数
 int seed = 1;                    // 随机种子
 Snake sn;                        // 蛇
 FoodList fd;                     // 食物
-bool wall[4] = {1, 0, 1, 0};     // 四面墙的虚实,右,下,左,上
 int barrier_num;                 // 障碍物个数
 int barrier[MAX_BARRIER_NUM][2]; // 障碍物位置
 key_msg game_msg;                // 键盘消息
@@ -260,7 +259,7 @@ void AI_game(string mp, string cfg)
     {
         if (step_num++)
         {
-            new_direc = a_star_search(sn.body.front()->x, sn.body.front()->y, fd);
+            new_direc = a_star_search(sn.body.front()->x, sn.body.front()->y, fd, sn);
 
             cout << "new_drec=" << new_direc << endl;
         }

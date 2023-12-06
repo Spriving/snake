@@ -2,6 +2,7 @@
 int block_num_x = 15;
 int block_num_y = 12;
 int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM];
+bool wall[4] = {1, 0, 1, 0}; // 四面墙的虚实,右,下,左,上
 int block_x[MAX_BLOCK_NUM + 1];
 int block_y[MAX_BLOCK_NUM + 1];
 void delay_ms(int ms)

@@ -26,6 +26,7 @@ enum Object
 extern int block_num_x;                       // x方向格子数,default 15
 extern int block_num_y;                       // y方向格子数,default 12
 extern int map[MAX_BLOCK_NUM][MAX_BLOCK_NUM]; // 每一个格子中的内容:空格/食物/障碍物
+extern bool wall[4];                          // 四面墙的虚实,右,下,左,上
 extern int block_x[MAX_BLOCK_NUM + 1];        // x方向每一个格子的x坐标
 extern int block_y[MAX_BLOCK_NUM + 1];        // y方向每一个格子的y坐标
 /*全局函数*/
